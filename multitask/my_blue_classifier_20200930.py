@@ -117,41 +117,6 @@ def loadmodel(model_dir=None,from_net=True,frozen=True,task_num = 5):
     return model
 
 
-def _truncate_seq_pair(tokens_a, tokens_b, max_length):
-    """Truncates a sequence pair in place to the maximum length."""
-
-    # This is a simple heuristic which will always truncate the longer sequence
-    # one token at a time. This makes more sense than truncating an equal percent
-    # of tokens from each, since if one sequence is very short then each token
-    # that's truncated likely contains more information than a longer sequence.
-    if tokens_b is not None:
-        while True:
-            total_length = len(tokens_a) + len(tokens_b)
-            if total_length > max_length * 1.5:
-                logging.info(
-                    "the total length {} is far exceeding the maximum length {}".format(total_length, max_length))
-
-            if total_length <= max_length:
-                break
-            if len(tokens_a) > len(tokens_b):
-                tokens_a.pop()
-            else:
-                tokens_b.pop()
-    else:
-        while True:
-            total_length = len(tokens_a)
-            if total_length > max_length * 1.5:
-                logging.info(
-                    "the total length {} is far exceeding the maximum length {}".format(total_length, max_length))
-
-            if total_length <= max_length:
-                break
-            if len(tokens_a) > max_length:
-                tokens_a.pop()
-
-
-# def dynamicSave(path, model):
-#     torch.save()
 
 
 def convert_single_example(df, max_seq_length, tokenizer,is_sentence_pair=True,dataset_name="biosses"):
@@ -264,6 +229,7 @@ def loadData(path=None, dataset_name="biosses", data_type='train'):
     if path == None:
         # default data type is training data
         path = os.path.join(os.path.abspath(os.path.dirname(__file__) + "/datasets/" + dataset_name))
+
     else:
         path = os.path.join(path, data_type)
 

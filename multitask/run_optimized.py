@@ -2,7 +2,7 @@ import torch
 import logging
 import os
 
-from my_blue_classifier_optimized import AutoTokenizer,loadmodel,loadData,get_features,MyDataset,train,evaluation,InputFeatures
+from my_blue_classifier_optimized import AutoTokenizer,loadmodel,loadData,get_features,MyDataset,train,evaluation,InputFeatures,relativePath
 from module.task_heads import multi_task_model,MultiTaskLossWrapper
 
 
@@ -14,6 +14,7 @@ def main():
     model_dir = os.path.abspath(os.path.dirname(__file__))
     model_dir = os.path.join(model_dir, r"models\model_out")
     # model_dir = os.path.join(model_dir, r"models\chemprot02")
+    model_dir = relativePath(model_dir,2)
 
     models_in_file = os.listdir(model_dir)
     train_epoch = 1000

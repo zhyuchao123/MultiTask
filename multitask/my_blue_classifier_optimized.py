@@ -17,7 +17,25 @@ import torch.utils.data as data
 import itertools
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 ################################################################################
+def relativePath(abspath,degree):
+    # Use to get relative path
+    # abspath means absolute path
+    abspath = str(abspath)
+    print(abspath)
+    plist = abspath.split('/')
+
+    rtn = ''
+    for blk in (plist[-degree:]):
+        rtn +=blk
+        rtn+='\\'
+    return rtn[:-1]
+
 class MyDataset(torch.utils.data.Dataset):
+    """
+    features: a list of features
+    dataset_name: the name of corpus
+
+    """
     def __init__(self, features,dataset_name):
         self.features = features
         self.len = len(features)
@@ -66,20 +84,13 @@ class MyDataset(torch.utils.data.Dataset):
                     # ,"dataset_name": "chemprot"
                     }
     def get_dataset_name(self):
+
         return self.dataset_name
     def __len__(self):
         return self.len
 
 
-################################################################################
-# testing functions
-def printlines(text, n=5):
-    # function for print first n lines(default 5)
-    limit = len(text)
-    for i, t in enumerate(text):
-        if i < n and i < limit:
-            print(t)
-            print("###sep###")
+
 
 
 ################################################################################
@@ -92,18 +103,15 @@ def loadmodel(model_dir=None,from_net=True,frozen=True,task_num = 5):
     """
     model = None
     if from_net == True and model_dir is None:
-        # load
+        # load model from net
         pretrained_model = AutoModelWithLMHead.from_pretrained("dmis-lab/biobert-v1.1")
         model_ = multi_task_model(base_model=pretrained_model,frozen=frozen,device='cuda')
         # model =  MultiTaskLossWrapper(model=model_,task_num=task_num)
         return model_
 
 
-    """
-    
-    
-    """
     if model_dir == None:
+        # load model from local(deprecated)
         modeldir = os.path.abspath(os.path.dirname(__file__)+ "/../../")
         modelpath = os.path.join(modeldir, r"models\NCBI_BERT_pubmed_mimic_uncased_L-12_H-768_A-12\bert_model2.pt")
 
@@ -116,42 +124,6 @@ def loadmodel(model_dir=None,from_net=True,frozen=True,task_num = 5):
     model.state_dict(state)
     return model
 
-
-def _truncate_seq_pair(tokens_a, tokens_b, max_length):
-    """Truncates a sequence pair in place to the maximum length."""
-
-    # This is a simple heuristic which will always truncate the longer sequence
-    # one token at a time. This makes more sense than truncating an equal percent
-    # of tokens from each, since if one sequence is very short then each token
-    # that's truncated likely contains more information than a longer sequence.
-    if tokens_b is not None:
-        while True:
-            total_length = len(tokens_a) + len(tokens_b)
-            if total_length > max_length * 1.5:
-                logging.info(
-                    "the total length {} is far exceeding the maximum length {}".format(total_length, max_length))
-
-            if total_length <= max_length:
-                break
-            if len(tokens_a) > len(tokens_b):
-                tokens_a.pop()
-            else:
-                tokens_b.pop()
-    else:
-        while True:
-            total_length = len(tokens_a)
-            if total_length > max_length * 1.5:
-                logging.info(
-                    "the total length {} is far exceeding the maximum length {}".format(total_length, max_length))
-
-            if total_length <= max_length:
-                break
-            if len(tokens_a) > max_length:
-                tokens_a.pop()
-
-
-# def dynamicSave(path, model):
-#     torch.save()
 
 
 def convert_single_example(df, max_seq_length, tokenizer,is_sentence_pair=True,dataset_name="biosses"):
@@ -264,6 +236,7 @@ def loadData(path=None, dataset_name="biosses", data_type='train'):
     if path == None:
         # default data type is training data
         path = os.path.join(os.path.abspath(os.path.dirname(__file__) + "/datasets/" + dataset_name))
+        path = relativePath(path,2) # use relative path
     else:
         path = os.path.join(path, data_type)
 
@@ -304,6 +277,7 @@ class train():
         # get the trained model's path
         self.dir = os.path.abspath(os.path.dirname(__file__))
         self.dir = os.path.join(self.dir, "models\model_out")
+        self.dir = relativePath(self.dir,2)
         # list the model in that directory
         dirs = os.listdir(self.dir)
         self.time_for_sumloss = accumulate_iter
