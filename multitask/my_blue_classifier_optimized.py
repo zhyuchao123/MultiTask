@@ -320,7 +320,7 @@ class train():
         if len(dirs)==0:
             # when there's no pre-trained model
             self.data_set_Names = [data_set.get_dataset_name() for data_set in data_Sets]
-            self.data_Loaders = [torch.utils.data.DataLoader(dataset=data_set, batch_size=batch_size, shuffle=shuffle)
+            self.data_Loaders = [torch.utils.data.DataLoader(dataset=data_set, batch_size=batch_size, shuffle=shuffle,num_workers=1)
                                  for data_set in data_Sets]
 
             # define task specified layers start
@@ -373,7 +373,8 @@ class train():
         total_iters = max([len(dl) for dl in self.data_Loaders])
         for i in range(epoch):
             loss_list = []
-            loops = tqdm(enumerate(itertools.zip_longest(*self.data_Loaders,fillvalue=None)),total=total_iters,leave=False)
+            data_loaders_iters = [iter(dl_) for dl_ in self.data_Loaders]
+            loops = tqdm(range(total_iters), total=total_iters,leave=False)
             # loops = tqdm(range(total_iters),total=total_iters,leave=False)
 
             count = 0
@@ -381,30 +382,27 @@ class train():
             if i % 5 == 0:
                 self.save_model(i + self.origin_stamp, self.epoch_losses)
             # myiters = [iter(dl) for dl in self.data_Loaders]
-            for ind, features in loops:
-            # for ind in loops:
+            for ind in loops:
+                features = []
 
-                # logger.logger.info("start interating on dataloaders ......")
-                # torch.cuda.empty_cache()
+                # get training datasets from dataloaders
+                for taski, dli in enumerate(data_loaders_iters):
+                    try:
+                        features.append(next(dli))
+                    except StopIteration:
+                        data_loaders_iters[taski] = iter(self.data_Loaders[taski])
+                        features.append(next(data_loaders_iters[i]))
 
-            # for iter_count in range(total_iters):
+
                 if count % self.time_for_sumloss == 0:
                     # clear accumulated loss
                     self.optimizer.zero_grad()
-                # for dataset_id, eachiter in enumerate(myiters):
-                #     try:
-                #         features = next(eachiter)
-                #     except StopIteration:
-                #         myiters[dataset_id] = iter(self.data_Loaders[dataset_id])
 
 
 
+                assert len(features) == len(self.data_set_Names)
                 temp_loss = self.model(features, self.data_set_Names)
-                # loss_list.extend(temp_loss)
 
-                # if count % self.time_for_sumloss == 0:
-                # _avg_loss = torch.mean(torch.tensor(temp_loss, requires_grad=True))
-                # temp_loss[-1].retain_grad()
                 _avg_loss = sum(temp_loss)/len(temp_loss)
                 _avg_loss.backward()
 
@@ -419,7 +417,7 @@ class train():
                 # temp = self.model.model.base_model.bert
                 # print(self.model.model.base_model.bert.encoder.layer[-2].output.dense.weight.grad)
                 # print(self.model.model.base_model.bert.pooler.dense.weight.grad)
-                #
+
                 # _avg_loss.backward()
                 # for l in temp_loss:
                 #     l.backward()
@@ -468,120 +466,3 @@ def get_features(df,max_seq_length, tokenizer , dataset_name, stop_size=100,):
     logger.logger.info("finally "+str(len(features))+" examples for "+dataset_name)
 
     return features
-
-# def main():
-    # torch.set_num_threads(6)
-    # logging.info(torch.__config__.parallel_info())
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    # dir = os.path.abspath(os.path.dirname(__file__)+ "/../../")
-    # model_dir = os.path.abspath(os.path.dirname(__file__)+ "/../../")
-    # model_dir = os.path.join(model_dir, r"models\model_out")
-    # models_in_file = os.listdir(model_dir)
-    # train_epoch = 1000
-    # task_num = 5 # define the number of tasks
-    #
-    # def findRecentModel(name):
-    #     return int(name.split('_')[1])
-    #
-    # max_seq_length = 256 # define the maximum length for input
-    #
-    # # load online tokenizer
-    # tokenizer = AutoTokenizer.from_pretrained("dmis-lab/biobert-v1.1")
-    #
-    #
-    # do_train = False
-    # if len(models_in_file)== 0 and do_train:
-    # # if do_train:
-    #     """
-    #     The model has not been trained(determined by detecting the model in the file)
-    #     """
-    #     model = loadmodel(from_net=True,frozen=False,task_num= task_num)  # load default model
-    #
-    #
-    #
-    #     # start data preparation
-    #     biosses_dataframe = loadData(dataset_name="biosses",data_type="train")  # load biosses data
-    #     biosses_features = get_features(df=biosses_dataframe,max_seq_length=max_seq_length, tokenizer= tokenizer , dataset_name = "biosses")
-    #
-    #     chemprot_dataframe = loadData(dataset_name="chemprot",data_type="train")
-    #     chemprot_features = get_features(df=chemprot_dataframe,max_seq_length=max_seq_length, tokenizer= tokenizer , dataset_name = "chemprot")
-    #
-    #     mednli_dataframe = loadData(dataset_name="mednli",data_type="train")
-    #     mednli_features = get_features(df=mednli_dataframe,max_seq_length=max_seq_length, tokenizer= tokenizer , dataset_name = "mednli")
-    #
-    #     hoc_dataframe = loadData(dataset_name='hoc',data_type='train')
-    #     hoc_features = get_features(df=hoc_dataframe,max_seq_length=max_seq_length, tokenizer= tokenizer , dataset_name = "hoc")
-    #
-    #     ddi2010_dataframe = loadData(dataset_name='ddi2010',data_type='train')
-    #     ddi2010_features = get_features(df=ddi2010_dataframe,max_seq_length=max_seq_length, tokenizer= tokenizer , dataset_name = "ddi2010")
-    #
-    #     biosses_train_data = MyDataset(features=biosses_features,dataset_name="biosses")  # inherit from torch.utils.data.Dataset
-    #     chemprot_train_data = MyDataset(features=chemprot_features,dataset_name="chemprot")
-    #     mednli_train_data = MyDataset(features=mednli_features,dataset_name="mednli")
-    #     hoc_train_data = MyDataset(features=hoc_features,dataset_name='hoc')
-    #     ddi2010_train_data = MyDataset(features=ddi2010_features,dataset_name='ddi2010')
-    #
-    #     # # start training
-    #     # trainer = train(base_model=model, data_Sets=[biosses_train_data, chemprot_train_data, mednli_train_data],
-    #     #                 device='cuda', shuffle=True,task_num= task_num)
-    #     trainer = train(base_model=model, data_Sets=[biosses_train_data,chemprot_train_data,mednli_train_data,hoc_train_data,ddi2010_train_data],batch_size=2,
-    #                     device='cuda', shuffle=True, task_num=task_num,accumulate_iter=3)
-    #     # trainer = train(base_model=model, data_Sets=[hoc_train_data],
-    #     #                 batch_size=12,
-    #     #                 device='cuda', shuffle=True, task_num=task_num, accumulate_iter=2)
-    #     trainer.run(train_epoch)
-    # elif do_train:
-    #     trainer = train(base_model=None, data_Sets=[],
-    #                     device='cuda', shuffle=True,task_num=task_num)
-    #     trainer.run(train_epoch)
-    #
-    # # my_eval.evaluate_train(r"F:\NLP\NLP\blue_bert_master\models\model_out_flowback\model_2000_.pt")
-    # # exit(1)
-    # do_eval = True
-    # models_in_file = os.listdir(model_dir)
-    #
-    # if do_eval and len(models_in_file)>0:
-    #     models_in_file.sort(key=findRecentModel)
-    #     latest_model = os.path.join(model_dir, models_in_file[-1])
-    #     # start data preparation
-    #
-    #     biosses_dataframe = loadData(dataset_name="biosses", data_type="test")  # load biosses data
-    #     biosses_features = get_features(df=biosses_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
-    #                                     dataset_name="biosses")
-    #
-    #     chemprot_dataframe = loadData(dataset_name="chemprot", data_type="test")
-    #     chemprot_features = get_features(df=chemprot_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
-    #                                      dataset_name="chemprot")
-    #
-    #     mednli_dataframe = loadData(dataset_name="mednli", data_type="test")
-    #     mednli_features = get_features(df=mednli_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
-    #                                    dataset_name="mednli")
-    #
-    #     hoc_dataframe = loadData(dataset_name='hoc', data_type='test')
-    #     hoc_features = get_features(df=hoc_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
-    #                                 dataset_name="hoc")
-    #
-    #     ddi2010_dataframe = loadData(dataset_name='ddi2010', data_type='test')
-    #     ddi2010_features = get_features(df=ddi2010_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
-    #                                     dataset_name="ddi2010")
-    #
-    #     biosses_test_data = MyDataset(features=biosses_features,dataset_name="biosses")  # inherit from torch.utils.data.Dataset
-    #     chemprot_test_data = MyDataset(features=chemprot_features, dataset_name="chemprot")
-    #     mednli_test_data = MyDataset(features=mednli_features, dataset_name="mednli")
-    #
-    #     hoc_test_data = MyDataset(features=hoc_features,dataset_name="hoc")
-    #
-    #     ddi2010_test_data = MyDataset(features=ddi2010_features,dataset_name="ddi2010")
-    #     # # start training
-    #
-    #     # for model in models_in_file:
-    #     #     recent_model = os.path.join(model_dir,model)
-    #     #     # evaluation(model_dir=recent_model, eval_dataSets=[biosses_test_data, chemprot_test_data, mednli_test_data])
-    #     #     evaluation(model_dir=recent_model, eval_dataSets=[chemprot_test_data],device=device, batch_size=20)
-    #     evaluation(model_dir=os.path.join(model_dir,models_in_file[-3]), eval_dataSets=[biosses_test_data, chemprot_test_data, mednli_test_data,hoc_test_data,ddi2010_test_data],device=device,batch_size=20)
-
-    # end training
-
-
-# if __name__ == '__main__':
-#     main()

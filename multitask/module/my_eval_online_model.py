@@ -16,7 +16,7 @@ def confusion_matrix_to_pandas(data,labels):
         columns=labels,
         index=labels)
     return table
-def evaluation(model_path, eval_dataSets, device="cuda", batch_size=10):
+def evaluation(model,model_dict_path, eval_dataSets, device="cuda", batch_size=10):
     """
     to evaluation the model
     input paras:
@@ -39,15 +39,16 @@ def evaluation(model_path, eval_dataSets, device="cuda", batch_size=10):
 
     report_path = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "reports")))
 
-    checkpoint = torch.load(model_path)
-    model = checkpoint['model']
+    checkpoint = torch.load(model_dict_path)
+    model_dict = checkpoint['model']
+    model.load_state_dict(model_dict)
     model = model.eval()
     model = model.to(device)
     # base_model = model.get_multiTask_model().eval()
     data_set_Names = [data_set.get_dataset_name() for data_set in eval_dataSets]
     data_Loaders = [torch.utils.data.DataLoader(dataset=data_set, batch_size=batch_size, shuffle=False)
                     for data_set in eval_dataSets]
-    model_name = model_path.split("\\")[-1].split('.')[0]
+    model_name = model_dict_path.split("\\")[-1].split('.')[0]
 
     for dataset_name,data_Loaders in zip(data_set_Names,data_Loaders):
         targets = []

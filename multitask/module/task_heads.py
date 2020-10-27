@@ -104,10 +104,10 @@ class hoc_doc_classification(nn.Module):
         # out = self.Dropout(out)
         out = input_tensor[:, 0, :]
         out = out.squeeze(1)
-        out = self.Tanh(out)
+        # out = self.Tanh(out)
 
         out = torch.cat([linearfc(out) for linearfc in self.Linears],dim=1)
-        out = self.Relu(out)
+        # out = self.Relu(out)
 
         return out
 
@@ -293,6 +293,7 @@ class MultiTaskLossWrapper(nn.Module):
 
     def forward(self, features, dataset_names):
         losses = []
+        assert len(features) == len(dataset_names)
         for feature, dataset_name in zip(features, dataset_names):
             if feature is None:
                 continue

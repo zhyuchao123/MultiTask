@@ -1,10 +1,8 @@
 import torch
 import logging
 import os
-# for idle
-# from multitask.my_blue_classifier_20200930 import AutoTokenizer,loadmodel,loadData,get_features,MyDataset,train,evaluation
-# for terminal
-from my_blue_classifier_20200930 import AutoTokenizer,loadmodel,loadData,get_features,MyDataset,train,evaluation,InputFeatures
+
+from my_blue_classifier_optimized import AutoTokenizer,loadmodel,loadData,get_features,MyDataset,train,evaluation,InputFeatures
 from module.task_heads import multi_task_model,MultiTaskLossWrapper
 
 
