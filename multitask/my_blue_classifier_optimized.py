@@ -393,7 +393,7 @@ class train():
                         features.append(next(dli))
                     except StopIteration:
                         data_loaders_iters[taski] = iter(self.data_Loaders[taski])
-                        features.append(next(data_loaders_iters[i]))
+                        features.append(next(data_loaders_iters[taski]))
 
 
                 if count % self.time_for_sumloss == 0:
