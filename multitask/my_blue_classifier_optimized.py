@@ -370,6 +370,8 @@ class train():
             epoch = 5
         logger.logger.info("start for training ......")
 
+        if torch.cuda.device_count() > 1:
+            parallel_model = torch.nn.DataParallel( self.model)
         total_iters = max([len(dl) for dl in self.data_Loaders])
         for i in range(epoch):
             loss_list = []
@@ -401,7 +403,11 @@ class train():
 
 
                 assert len(features) == len(self.data_set_Names)
-                temp_loss = self.model(features, self.data_set_Names)
+                if torch.cuda.device_count() < 2:
+
+                    temp_loss = self.model(features, self.data_set_Names)
+                else:
+                    temp_loss = parallel_model(features, self.data_set_Names)
 
                 _avg_loss = sum(temp_loss)/len(temp_loss)
                 _avg_loss.backward()
