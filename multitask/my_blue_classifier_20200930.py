@@ -313,8 +313,14 @@ class train():
 
             modeldict = content["model"]
             self.model = MultiTaskLossWrapper(model=base_model, task_num=task_num,fine_tune=False)
-            self.model.load_state_dict(modeldict)
+            modeldict.pop("CrossEntropy_loss_chemprot.weight")
+            modeldict.pop('CrossEntropy_loss_mednli.weight')
+            modeldict.pop('MultiLabel_loss_hoc.weight')
+            modeldict.pop('CrossEntropy_loss_ddi2010.weight')
+
+            self.model.load_state_dict(modeldict,strict=False)
             self.model.train()
+
             self.optimizer = torch.optim.Adam(self.model.parameters())
             self.optimizer.load_state_dict(content["optimizer"])
 

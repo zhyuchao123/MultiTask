@@ -3,7 +3,8 @@ import os
 import logging
 from tqdm import tqdm
 import transformers
-from transformers import AutoTokenizer, AutoModelWithLMHead
+from transformers import AutoTokenizer, AutoModelWithLMHead,AutoModelForMaskedLM
+
 # import transformers.tokenization_bert as tokenizer
 from transformers import BertTokenizer, BertConfig, BertModel
 import logger
@@ -94,7 +95,7 @@ class MyDataset(torch.utils.data.Dataset):
 
 
 ################################################################################
-def loadmodel(model_dir=None,from_net=True,frozen=True,task_num = 5):
+def loadmodel(model_dir=None,module_name = 'biobert',frozen=True,task_num = 5):
     """
     return: a base model
     model dir is where the parameters and config of the model in
@@ -102,13 +103,17 @@ def loadmodel(model_dir=None,from_net=True,frozen=True,task_num = 5):
 
     """
     model = None
-    if from_net == True and model_dir is None:
+    if module_name == 'biobert' and model_dir is None:
         # load model from net
         pretrained_model = AutoModelWithLMHead.from_pretrained("dmis-lab/biobert-v1.1")
         model_ = multi_task_model(base_model=pretrained_model,frozen=frozen,device='cuda')
         # model =  MultiTaskLossWrapper(model=model_,task_num=task_num)
         return model_
+    elif module_name == 'bert-base-uncased':
 
+        pretrained_model = AutoModelForMaskedLM.from_pretrained("bert-base-uncased")
+        model_ = multi_task_model(base_model=pretrained_model,frozen=frozen,device='cuda')
+        return model_
 
     if model_dir == None:
         # load model from local(deprecated)
@@ -125,6 +130,15 @@ def loadmodel(model_dir=None,from_net=True,frozen=True,task_num = 5):
     return model
 
 
+def load_tokenizer(module_name='biobert'):
+    tokenizer = None
+    if module_name=='biobert':
+        tokenizer = AutoTokenizer.from_pretrained("dmis-lab/biobert-v1.1")
+    elif module_name == 'bert-base-uncased':
+        tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+    if tokenizer is None:
+        raise ValueError('unsupported tokenizer,please use a valid module_name')
+    return tokenizer
 
 def convert_single_example(df, max_seq_length, tokenizer,is_sentence_pair=True,dataset_name="biosses"):
     # dataframe ['old_index''sentence1','sentence2','score']
@@ -310,6 +324,7 @@ class train():
         else:
             dirs.sort(key=findRecentModel)
             content = torch.load(os.path.join(self.dir,dirs[-1]))
+
             self.data_set_Names = content["data_set_Names"]
             if len(data_Sets)==0:
                 self.data_Loaders = content["data_Loaders"]
@@ -321,7 +336,15 @@ class train():
 
             modeldict = content["model"]
             self.model = MultiTaskLossWrapper(model=base_model, task_num=task_num,fine_tune=False)
-            self.model.load_state_dict(modeldict)
+
+            #
+            modeldict.pop("CrossEntropy_loss_chemprot.weight")
+            modeldict.pop('CrossEntropy_loss_mednli.weight')
+            modeldict.pop('MultiLabel_loss_hoc.weight')
+            modeldict.pop('CrossEntropy_loss_ddi2010.weight')
+
+
+            self.model.load_state_dict(modeldict,strict=False)
             self.model.train()
             self.optimizer = torch.optim.Adam(self.model.parameters())
             self.optimizer.load_state_dict(content["optimizer"])
@@ -435,8 +458,8 @@ def get_features(df,max_seq_length, tokenizer , dataset_name, stop_size=100,):
 
         _feature = convert_single_example(df=df[index:index + 1], max_seq_length=max_seq_length,
                                           tokenizer=tokenizer, dataset_name=dataset_name)
-        # if _feature['tokens_length'] > max_seq_length:
-        #     continue
+        if _feature['tokens_length'] > max_seq_length:
+            continue
         # if dataset_name == 'hoc':
         #     _feature['label'] == '100000000'
         features.append(_feature)

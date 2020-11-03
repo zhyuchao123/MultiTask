@@ -258,15 +258,9 @@ class MultiTaskLossWrapper(nn.Module):
         """define Loss calculators"""
         self.MSE_loss = nn.MSELoss(reduction="mean")
         # different task use different loss setting
-        # chemprot loss use weight according to the train data
-        # false    14757
-        # CPR:3      768
-        # CPR:4     2251
-        # CPR:5      173
-        # CPR:6      235
-        # CPR:9      727
-
         # define loss for chemprot
+        # change the weight is necessary
+        # default: according to the proportion of different types records
         t_chemprot = 1 / torch.tensor([14757, 768, 2251, 173, 235, 727], dtype=torch.float32)
         w_chemprot = (t_chemprot / t_chemprot.sum())
         self.CrossEntropy_loss_chemprot = nn.CrossEntropyLoss(w_chemprot.to(device))
