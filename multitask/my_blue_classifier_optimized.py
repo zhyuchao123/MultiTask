@@ -28,7 +28,7 @@ def relativePath(abspath,degree):
     rtn = ''
     for blk in (plist[-degree:]):
         rtn +=blk
-        rtn+='\\'
+        rtn+='/'
     return rtn[:-1]
 
 class MyDataset(torch.utils.data.Dataset):
@@ -290,7 +290,7 @@ class train():
     def __init__(self, base_model, data_Sets, lr=1e-5, device= 'cuda' , batch_size= 2, shuffle=False,task_num=3, accumulate_iter=10):
         # get the trained model's path
         self.dir = os.path.abspath(os.path.dirname(__file__))
-        self.dir = os.path.join(self.dir, "models\model_out")
+        self.dir = os.path.join(self.dir, "models/model_out")
         self.dir = relativePath(self.dir,2)
         # list the model in that directory
         dirs = os.listdir(self.dir)

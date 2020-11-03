@@ -12,7 +12,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dir = os.path.abspath(os.path.dirname(__file__) )
     model_dir = os.path.abspath(os.path.dirname(__file__))
-    model_dir = os.path.join(model_dir, r"models\model_out")
+    model_dir = os.path.join(model_dir, r"models/model_out")
     # model_dir = os.path.join(model_dir, r"models\chemprot02")
     model_dir = relativePath(model_dir,2)
 
