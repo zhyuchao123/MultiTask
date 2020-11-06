@@ -24,12 +24,12 @@ def main():
         return int(name.split('_')[1])
 
     max_seq_length = 256  # define the maximum length for input
-    module_name = 'bert-base-uncased' # ['biobert','bert-base-uncased'] valid
+    module_name = 'biobert' # ['biobert','bert-base-uncased'] valid
 
     # load online tokenizer
     tokenizer = load_tokenizer(module_name)
 
-    do_train = True
+    do_train = False
     if len(models_in_file) == 0 and do_train:
         # if do_train:
         """
@@ -78,7 +78,7 @@ def main():
         #                 device='cuda', shuffle=True, task_num=task_num, accumulate_iter=2)
         trainer.run(train_epoch)
     elif do_train:
-        base_model = loadmodel(from_net=True, frozen=False, task_num=task_num)  # load default model
+        base_model = loadmodel(module_name=module_name, frozen=False, task_num=task_num)  # load default model
         biosses_dataframe = loadData(dataset_name="biosses", data_type="train")  # load biosses data
         biosses_features = get_features(df=biosses_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
                                         dataset_name="biosses")
@@ -126,7 +126,8 @@ def main():
 
         ddi2010_test_data = MyDataset(features=ddi2010_features, dataset_name="ddi2010")
         # # start training
-        base_model = loadmodel(from_net=True, frozen=False, task_num=task_num)
+        base_model = loadmodel(module_name=module_name, frozen=False, task_num=task_num)  # load default model
+
         initial_model = MultiTaskLossWrapper(model=base_model, task_num=task_num, fine_tune=False)
         for model in models_in_file:
 
@@ -136,8 +137,10 @@ def main():
         # evaluation(model_dir=os.path.join(model_dir, models_in_file[-3]),
         #            eval_dataSets=[biosses_test_data, chemprot_test_data, mednli_test_data, hoc_test_data,
         #                           ddi2010_test_data], device=device, batch_size=20)
-    do_dev = False
+    do_dev = True
     if do_dev and len(models_in_file) > 0:
+        models_in_file.sort(key=findRecentModel)
+
         models_in_file.sort(key=findRecentModel)
         latest_model = os.path.join(model_dir, models_in_file[-1])
         # start data preparation
@@ -145,8 +148,33 @@ def main():
         biosses_dataframe = loadData(dataset_name="biosses", data_type="dev")  # load biosses data
         biosses_features = get_features(df=biosses_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
                                         dataset_name="biosses")
-        biosses_test_data = MyDataset(features=biosses_features,
+        biosses_dev_data = MyDataset(features=biosses_features,
                                       dataset_name="biosses")  # inherit from torch.utils.data.Dataset
+        chemprot_dataframe = loadData(dataset_name="chemprot", data_type="dev")
+        chemprot_features = get_features(df=chemprot_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
+                                         dataset_name="chemprot")
+
+        mednli_dataframe = loadData(dataset_name="mednli", data_type="dev")
+        mednli_features = get_features(df=mednli_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
+                                       dataset_name="mednli")
+
+        hoc_dataframe = loadData(dataset_name='hoc', data_type='dev')
+        hoc_features = get_features(df=hoc_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
+                                    dataset_name="hoc")
+
+        ddi2010_dataframe = loadData(dataset_name='ddi2010', data_type='dev')
+        ddi2010_features = get_features(df=ddi2010_dataframe, max_seq_length=max_seq_length, tokenizer=tokenizer,
+                                        dataset_name="ddi2010")
+
+        biosses_dev_data = MyDataset(features=biosses_features,dataset_name="biosses")  # inherit from torch.utils.data.Dataset
+        chemprot_dev_data = MyDataset(features=chemprot_features, dataset_name="chemprot")
+        mednli_dev_data = MyDataset(features=mednli_features, dataset_name="mednli")
+
+        hoc_dev_data = MyDataset(features=hoc_features, dataset_name="hoc")
+
+        ddi2010_dev_data = MyDataset(features=ddi2010_features, dataset_name="ddi2010")
+
+
         for model in models_in_file:
             recent_model = os.path.join(model_dir, model)
             # evaluation(model_dir=recent_model, eval_dataSets=[biosses_test_data, chemprot_test_data, mednli_test_data])
